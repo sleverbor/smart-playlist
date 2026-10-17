@@ -1,0 +1,26 @@
+[
+  {
+    "id": "track100",
+    "kind": "track",
+    "window": 100,
+    "strength": "REQUIRED",
+    "priority": 0,
+    "enabled": true
+  },
+  {
+    "id": "artist20",
+    "kind": "artist",
+    "window": 20,
+    "strength": "REQUIRED",
+    "priority": 0,
+    "enabled": true
+  },
+  {
+    "id": "album10",
+    "kind": "album",
+    "window": 10,
+    "strength": "OPTIONAL",
+    "priority": 0,
+    "enabled": true
+  }
+]

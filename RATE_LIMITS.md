@@ -1,0 +1,21 @@
+# Spotify request resilience
+
+The Web API client now applies these protections automatically. No dependencies are required.
+
+- Default spacing: at least one second between request starts, including metadata checks and batches. Set `SPOTIFY_REQUEST_INTERVAL` to a finite nonnegative number to tune it.
+- A local lock and `.spotify-poc/rate.json` share pacing and cooldown across clients and restarts in the same state directory. To coordinate separate local directories using the same Spotify app, set `SPOTIFY_RATE_STATE` to the same absolute file path for all of them. This is local coordination, not a distributed limiter for a future multi-user service. One second is a conservative starting point, not a quota guarantee.
+- Explicit HTTP 429 responses retry the same request after `Retry-After`. Missing, negative or invalid values use exponential backoff (2, 4, 8… seconds). Default maximum is three retries, with a 120-second cumulative retry-delay budget. Longer advertised waits are persisted and the operation stops rather than retrying early. Persistent 429s stop with the cooldown saved. Ctrl-C during waiting also preserves the cooldown. Large waits use interruptible chunks.
+- Timeouts, connection failures, other HTTP errors and ambiguous mutations are not automatically replayed. An uncertain create remains `creating`; uncertain population remains `pending`. Recovery performs existing ownership/readback checks. A rate-limited later batch retries that batch without replaying successful earlier batches.
+- Account credential-scoped caches retain ETags where returned, send `If-None-Match`, and reuse bodies on 304. Fresh `max-age` entries avoid requests; `no-cache` requires revalidation and `no-store` prevents storage. Absent ETags fall back to normal fetches. A 304 with no cached body is an error. Cached responses never substitute for a failed request.
+- Playlist metadata, ownership, playback history and target readback stay fresh. Each target download clears page caches, and writes invalidate that playlist's HTTP and source caches before attempting mutation.
+- Ordinary sync caches complete source rows under their snapshot IDs. An unchanged source requires one fresh metadata request instead of all item pages. Changed snapshots trigger a fresh download between snapshot checks; incomplete imports never become complete cache entries. Progressive resume also clears old HTTP pages when restarting a changed source.
+
+A 10,000-entry source test verifies 203 calls for its first cached import (three metadata reads plus 200 pages) and one for its subsequent unchanged lookup. These counts exclude target reads, playback history, account lookup and OAuth. Progressive setup still performs frequent consistency checks and ordinary target updates still replace the full intended queue; those request patterns can be optimized separately.
+
+The CLI writes aggregate counters to `.spotify-poc/api-metrics.json` after each authenticated command, including errors and interruptions: actual Web API request attempts, retries, 429 responses, cache hits, source-cache hits and pacing/cooldown wait seconds. Counts do not include OAuth token exchange or refresh. OAuth requests still fail closed rather than being automatically retried. No tokens or track IDs are included in this metrics report. Files containing cached music data remain local, owner-readable and unencrypted.
+
+Tests use fake time and simulated transport, not Spotify or real waiting. They cover pacing across clients, cooldown persistence, repeated/malformed/long 429 delays, conditional and fresh-cache behavior, cache isolation/invalidation, maximum source reuse, missing/deleted sources, interrupted waiting, partial writes and safe batch retry. This verifies client behavior; it does not establish the real app quota or live endpoint ETag coverage.
+
+References: [Spotify rate limits](https://developer.spotify.com/documentation/web-api/concepts/rate-limits), [conditional requests](https://developer.spotify.com/documentation/web-api/concepts/api-calls).
+
+SQLite is now the default persistence backend. Earlier file-path examples describe the legacy JSON layout; use `status` or `export` for current state. See [APP_READINESS.md](APP_READINESS.md).

@@ -1,0 +1,11 @@
+[project]
+name = "smart-playlist"
+version = "0.1.0"
+description = "Local Spotify playlist app and independent scheduling engine"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["playlist_engine*", "spotify_poc*", "spotify_ui*"]
+
+[tool.setuptools.package-data]
+spotify_ui = ["static/*"]
