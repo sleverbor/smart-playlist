@@ -5,12 +5,12 @@ from pathlib import Path
 from threading import Event
 from unittest.mock import Mock,patch
 
-from spotify_poc.storage import SQLiteStore
-from spotify_poc.accounts import Accounts
-from spotify_poc.progress import Progress, Cancelled
-from spotify_poc.service import Application
-from spotify_poc.writes import PreconditionFailed
-from spotify_poc.client import save_json,read_json,SpotifyError
+from spotify_app.storage import SQLiteStore
+from spotify_app.accounts import Accounts
+from spotify_app.progress import Progress, Cancelled
+from spotify_app.service import Application
+from spotify_app.writes import PreconditionFailed
+from spotify_app.client import save_json,read_json,SpotifyError
 from test_progressive import FakeSpotify
 from test_history_gap import fixture,event
 
@@ -163,7 +163,7 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(accounts.select(self.root,'existing-account'),shared)
 
     def test_pending_recovery_finishes_saved_plan_without_reading_new_playback(self):
-        from spotify_poc.sync import key
+        from spotify_app.sync import key
         store,client,app,state,metadata,rows=self.preview_fixture()
         state.update(status='pending',write_guard=dict(snapshot='v1',actual=[],events=[list(key(event(0)))]))
         store.write('state.json',state)
@@ -188,18 +188,18 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(read_json(shared)['next'],200)
 
     def test_sqlite_http_cache_and_persisted_429_details(self):
-        from spotify_poc.client import Client,RateLimited
+        from spotify_app.client import Client,RateLimited
         from test_rate_limits import Clock
         store=self.store();clock=Clock();events=[]
         token=self.root/'token.json'
         save_json(token,dict(client_id='app',access_token='secret',refresh_token='refresh',expires_at=9999999999))
         client=Client(token,store=store,progress=Progress(store,events.append),clock=clock.time,sleep=clock.sleep)
         headers={'ETag':'v1','Cache-Control':'max-age=0'}
-        with patch('spotify_poc.client.http_json',side_effect=[({'items':[1]},headers,200),(None,headers,304)]) as transport:
+        with patch('spotify_app.client.http_json',side_effect=[({'items':[1]},headers,200),(None,headers,304)]) as transport:
             self.assertEqual(client.request('GET','/playlists/s/items'),{'items':[1]})
             self.assertEqual(client.request('GET','/playlists/s/items'),{'items':[1]})
             self.assertEqual(transport.call_args.kwargs['extra_headers']['If-None-Match'],'v1')
-        with patch('spotify_poc.client.http_json',side_effect=[RateLimited('4'),({}, {},200)]):
+        with patch('spotify_app.client.http_json',side_effect=[RateLimited('4'),({}, {},200)]):
             client.request('GET','/me')
         saved=[json.loads(row[0]) for row in store.db.execute('SELECT payload FROM events')]
         rate=next(e for e in saved if e['stage']=='rate_limited')
@@ -208,7 +208,7 @@ class ApplicationTests(unittest.TestCase):
         self.assertFalse(any('secret' in json.dumps(e) for e in saved))
 
     def test_cancelled_cooldown_does_not_issue_request(self):
-        from spotify_poc.client import Client
+        from spotify_app.client import Client
         from test_rate_limits import Clock
         clock=Clock();cancel=Event()
         token=self.root/'token.json'
@@ -216,7 +216,7 @@ class ApplicationTests(unittest.TestCase):
         progress=Progress(cancellation=cancel)
         client=Client(token,progress=progress,clock=clock.time,sleep=clock.sleep)
         client.gate.defer(300);cancel.set()
-        with patch('spotify_poc.client.http_json') as transport:
+        with patch('spotify_app.client.http_json') as transport:
             with self.assertRaises(Cancelled):client.request('GET','/me')
         transport.assert_not_called()
         self.assertEqual(read_json(self.root/'rate.json')['next'],1300)
@@ -229,7 +229,7 @@ class ApplicationTests(unittest.TestCase):
         self.assertTrue(all(c.args[0]=='GET' for c in client.request.call_args_list))
 
     def test_legacy_mode_refuses_migrated_workspace(self):
-        from spotify_poc.__main__ import main
+        from spotify_app.__main__ import main
         accounts=self.root/'accounts';store=self.store(database=accounts/'application.sqlite')
         with patch('sys.argv',['p','--directory',str(self.root),'--accounts-directory',str(accounts),'--storage','json','sync']):
             with self.assertRaisesRegex(SpotifyError,'legacy JSON is stale'):main()
@@ -264,7 +264,7 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(sum('Verified playlist:' in e.get('message','') for e in events),1)
 
     def test_playback_during_expansion_finishes_import_and_defers_write(self):
-        from spotify_poc.writes import apply, PlaybackChanged
+        from spotify_app.writes import apply, PlaybackChanged
         store=self.store();client=FakeSpotify(sources=2,pages=4)
         calls=[]
         def publish(*args,**kwargs):
@@ -328,7 +328,7 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(client.request.call_count,1)
 
     def test_removed_library_target_is_detected_before_source_import(self):
-        from spotify_poc.client import Client
+        from spotify_app.client import Client
         store=self.store();pool,state=fixture();store.write('state.json',state)
         client=Mock(spec=Client);client.playlist_saved.return_value=False
         app=Application(client,self.root,store);app.account=state['account']

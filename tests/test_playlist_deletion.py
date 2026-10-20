@@ -4,9 +4,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from spotify_poc.__main__ import apply, ids, main
-from spotify_poc.client import SpotifyError
-from spotify_poc.progressive import run
+from spotify_app.__main__ import apply, ids, main
+from spotify_app.client import SpotifyError
+from spotify_app.progressive import run
 import test_progressive
 from test_progressive import FakeSpotify
 
@@ -35,7 +35,7 @@ class PlaylistDeletionTests(unittest.TestCase):
                 if 'Ready to play' in message:
                     saved.append((root / 'state.json').read_bytes())
                     client.deleted = True
-            with patch('spotify_poc.progressive.emit', side_effect=delete_after_ready):
+            with patch('spotify_app.progressive.emit', side_effect=delete_after_ready):
                 with self.assertRaisesRegex(SpotifyError, '404'):
                     test_progressive.ProgressiveTests().start(client, root)
             self.assertEqual((root / 'state.json').read_bytes(), saved[0])
@@ -46,7 +46,7 @@ class PlaylistDeletionTests(unittest.TestCase):
         def pause(message):
             if 'Ready to play' in message:
                 raise KeyboardInterrupt()
-        with patch('spotify_poc.progressive.emit', side_effect=pause):
+        with patch('spotify_app.progressive.emit', side_effect=pause):
             with self.assertRaises(KeyboardInterrupt):
                 test_progressive.ProgressiveTests().start(client, root)
         client.deleted = True
@@ -58,7 +58,7 @@ class PlaylistDeletionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             saved = self.paused_setup(client, root)
-            with patch('spotify_poc.progressive.emit'), self.assertRaisesRegex(SpotifyError, '404'):
+            with patch('spotify_app.progressive.emit'), self.assertRaisesRegex(SpotifyError, '404'):
                 run(client, root, 'me', apply, ids)
             self.assertEqual((root / 'state.json').read_bytes(), saved)
             self.assertEqual(len(client.creates), 1)
@@ -70,9 +70,9 @@ class PlaylistDeletionTests(unittest.TestCase):
                 client = DeletedTargetSpotify()
                 root = Path(folder)
                 saved = self.paused_setup(client, root)
-                with patch('spotify_poc.__main__.Client', return_value=client), \
-                     patch('spotify_poc.__main__.library', return_value=([], {}, {})), \
-                     patch('sys.argv', ['spotify_poc', '--accounts-directory', str(Path(folder)/'accounts'), '--storage', 'json', '--directory', folder, 'sync'] + flags), \
+                with patch('spotify_app.__main__.Client', return_value=client), \
+                     patch('spotify_app.__main__.library', return_value=([], {}, {})), \
+                     patch('sys.argv', ['spotify_app', '--accounts-directory', str(Path(folder)/'accounts'), '--storage', 'json', '--directory', folder, 'sync'] + flags), \
                      self.assertRaisesRegex(SpotifyError, '404'):
                     main()
                 self.assertEqual((root / 'state.json').read_bytes(), saved)

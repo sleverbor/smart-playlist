@@ -5,7 +5,7 @@ description = "Local Spotify playlist app and independent scheduling engine"
 requires-python = ">=3.10"
 
 [tool.setuptools.packages.find]
-include = ["playlist_engine*", "spotify_poc*", "spotify_ui*"]
+include = ["playlist_engine*", "spotify_app*", "spotify_ui*"]
 
 [tool.setuptools.package-data]
 spotify_ui = ["static/*"]

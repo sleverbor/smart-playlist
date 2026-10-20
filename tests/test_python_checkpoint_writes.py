@@ -1,6 +1,6 @@
 import tempfile,unittest
 from pathlib import Path
-from spotify_poc.storage import SQLiteStore
+from spotify_app.storage import SQLiteStore
 from test_history_gap import fixture
 
 class CheckpointTests(unittest.TestCase):

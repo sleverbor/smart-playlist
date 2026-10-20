@@ -2,9 +2,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch, Mock
-from spotify_poc.progressive import run, confidence
-from spotify_poc.__main__ import apply, ids
-from spotify_poc.client import SpotifyError, read_json, save_json
+from spotify_app.progressive import run, confidence
+from spotify_app.__main__ import apply, ids
+from spotify_app.client import SpotifyError, read_json, save_json
 from playlist_engine import Track
 
 
@@ -68,7 +68,7 @@ class ProgressiveTests(unittest.TestCase):
 
     def test_early_publish_and_round_robin(self):
         c=FakeSpotify()
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit') as progress:
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit') as progress:
             self.start(c,Path(d))
             self.assertEqual(c.creates,[3])
             self.assertEqual(c.reads[:3],[('0',0),('1',0),('2',0)])
@@ -84,10 +84,10 @@ class ProgressiveTests(unittest.TestCase):
                 raise KeyboardInterrupt()
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
-            with patch('spotify_poc.progressive.emit',side_effect=interrupt), self.assertRaises(KeyboardInterrupt):
+            with patch('spotify_app.progressive.emit',side_effect=interrupt), self.assertRaises(KeyboardInterrupt):
                 self.start(c,root)
             self.assertEqual(len(c.target),2)
-            with patch('spotify_poc.progressive.emit'):
+            with patch('spotify_app.progressive.emit'):
                 run(c,root,'me',apply,ids)
             self.assertEqual(len(c.creates),1)
             self.assertEqual(len(c.target),6)
@@ -95,7 +95,7 @@ class ProgressiveTests(unittest.TestCase):
 
     def test_impossible_artist_rule_never_creates(self):
         c=FakeSpotify(artists='same')
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit'):
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit'):
             with self.assertRaises(SpotifyError):
                 run(c,Path(d),'me',apply,ids,sources=list(c.sources),
                     rows=[dict(id='a',kind='artist',window=50,strength='REQUIRED')],minimum=2,normal=6)
@@ -104,14 +104,14 @@ class ProgressiveTests(unittest.TestCase):
     def test_duplicate_sources_do_not_inflate_reserve(self):
         c=FakeSpotify()
         c.sources={s:[[track('same')]*10]*3 for s in c.sources}
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit'):
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit'):
             with self.assertRaises(SpotifyError):
                 self.start(c,Path(d))
         self.assertEqual(c.creates,[])
 
     def test_genre_missing_blocks(self):
         c=FakeSpotify()
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit'):
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit'):
             with self.assertRaisesRegex(SpotifyError,'Genre'):
                 run(c,Path(d),'me',apply,ids,sources=list(c.sources),
                     rows=[dict(id='g',kind='genre',window=1,strength='REQUIRED')],minimum=2,normal=6)
@@ -120,7 +120,7 @@ class ProgressiveTests(unittest.TestCase):
     def test_failed_import_preserves_playable_buffer(self):
         c=FakeSpotify()
         c.fail_page=('0',1)
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit'):
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit'):
             with self.assertRaises(SpotifyError):
                 self.start(c,Path(d))
             self.assertEqual(len(c.target),2)
@@ -137,7 +137,7 @@ class ProgressiveTests(unittest.TestCase):
 
     def test_pending_write_requires_recovery(self):
         c=FakeSpotify()
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit'):
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit'):
             root=Path(d)
             c.fail_page=('0',1)
             with self.assertRaises(SpotifyError):
@@ -152,7 +152,7 @@ class ProgressiveTests(unittest.TestCase):
     def test_readback_failure_never_announces_ready(self):
         c=FakeSpotify()
         c.replace=lambda identity,uris: None
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit') as progress:
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit') as progress:
             with self.assertRaisesRegex(SpotifyError,'Readback'):
                 self.start(c,Path(d))
             self.assertFalse(any('Ready to play' in call.args[0] for call in progress.call_args_list))
@@ -160,7 +160,7 @@ class ProgressiveTests(unittest.TestCase):
 
     def test_changed_source_invalidates_saved_pages(self):
         c=FakeSpotify()
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit'):
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit'):
             root=Path(d)
             c.fail_page=('0',1)
             with self.assertRaises(SpotifyError):
@@ -184,12 +184,12 @@ class ProgressiveTests(unittest.TestCase):
                 raise KeyboardInterrupt()
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
-            with patch('spotify_poc.progressive.emit',side_effect=interrupt), self.assertRaises(KeyboardInterrupt):
+            with patch('spotify_app.progressive.emit',side_effect=interrupt), self.assertRaises(KeyboardInterrupt):
                 self.start(c,root)
             first,second=c.target
             c.events=[anchor,dict(track=track(first),played_at='2',
                                   context={'uri':'spotify:playlist:target'})]
-            with patch('spotify_poc.progressive.emit'):
+            with patch('spotify_app.progressive.emit'):
                 run(c,root,'me',apply,ids)
             state=read_json(root/'state.json')
             self.assertEqual(state['history'][-1]['id'],first)
@@ -200,8 +200,8 @@ class ProgressiveTests(unittest.TestCase):
 
 class SnapshotDeferralTests(unittest.TestCase):
     def test_target_race_preserves_buffer_and_resume_finishes(self):
-        from spotify_poc.client import PlaylistChanged
-        from spotify_poc.writes import TargetChanged
+        from spotify_app.client import PlaylistChanged
+        from spotify_app.writes import TargetChanged
         for failure in (PlaylistChanged, TargetChanged):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as d:
                 client=FakeSpotify()
@@ -216,12 +216,12 @@ class SnapshotDeferralTests(unittest.TestCase):
                 def progress(message):
                     if 'Ready to play' in message:armed[0]=3
                 client.playlist=playlist
-                with patch('spotify_poc.progressive.emit',side_effect=progress):
+                with patch('spotify_app.progressive.emit',side_effect=progress):
                     run(client,root,'me',apply,ids,sources=list(client.sources),rows=[],minimum=2,normal=6)
                 self.assertEqual(read_json(root/'setup.json')['status'],'awaiting_pause')
                 self.assertEqual(read_json(root/'state.json')['status'],'ready')
                 self.assertEqual(len(client.target),2)
-                with patch('spotify_poc.progressive.emit'):
+                with patch('spotify_app.progressive.emit'):
                     run(client,root,'me',apply,ids)
                 self.assertEqual(read_json(root/'setup.json')['status'],'complete')
                 self.assertEqual(len(client.target),6)
@@ -230,7 +230,7 @@ class SnapshotDeferralTests(unittest.TestCase):
 
 class AutomaticContinuationTests(unittest.TestCase):
     def test_transient_race_finishes_without_manual_resume(self):
-        from spotify_poc.writes import TargetChanged
+        from spotify_app.writes import TargetChanged
         client=FakeSpotify();original=client.playlist;armed=[False];retried=[]
         def playlist(identity):
             if armed[0]:
@@ -240,7 +240,7 @@ class AutomaticContinuationTests(unittest.TestCase):
         def progress(message):
             if 'Ready to play' in message:armed[0]=True
         client.playlist=playlist
-        with tempfile.TemporaryDirectory() as d, patch('spotify_poc.progressive.emit',side_effect=progress):
+        with tempfile.TemporaryDirectory() as d, patch('spotify_app.progressive.emit',side_effect=progress):
             root=Path(d)
             run(client,root,'me',apply,ids,sources=list(client.sources),rows=[],minimum=2,normal=6)
             self.assertEqual(read_json(root/'setup.json')['status'],'complete')
@@ -249,7 +249,7 @@ class AutomaticContinuationTests(unittest.TestCase):
             self.assertEqual(len(retried),1)
 
     def test_complete_source_cache_reused_only_for_matching_snapshot(self):
-        from spotify_poc.client import Client
+        from spotify_app.client import Client
         class CachedFake(FakeSpotify,Client):
             def __init__(self,snapshot):
                 FakeSpotify.__init__(self,sources=1,pages=3)

@@ -1,8 +1,8 @@
 import tempfile,unittest
 from pathlib import Path
 from unittest.mock import Mock
-from spotify_poc.client import Client,save_json
-from spotify_poc.storage import SQLiteStore
+from spotify_app.client import Client,save_json
+from spotify_app.storage import SQLiteStore
 
 class AccountCacheTests(unittest.TestCase):
     def test_relogin_reuses_source_but_other_accounts_and_apps_do_not(self):

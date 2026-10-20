@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
-from spotify_poc.client import Client, pkce, SpotifyError
-from spotify_poc.sync import library, ordered, rules_from
+from spotify_app.client import Client, pkce, SpotifyError
+from spotify_app.sync import library, ordered, rules_from
 from playlist_engine import Track
 
 
@@ -37,14 +37,14 @@ class SpotifyTests(unittest.TestCase):
 
 class SyncTests(unittest.TestCase):
     def setup_state(self):
-        from spotify_poc.sync import bootstrap
+        from spotify_app.sync import bootstrap
         pool=[Track(str(i),str(i),('a'+str(i),),'b'+str(i),('g',)) for i in range(6)]
         state,_=bootstrap(pool,['s'],{'s':'1'},[],{},[],3,0,'me')
         state.update(status='ready',target='target')
         return pool,state
 
     def test_consumes_prefix(self):
-        from spotify_poc.sync import plan
+        from spotify_app.sync import plan
         pool,state=self.setup_state()
         first=state['queue'][0]['id']
         raw=dict(type='track',id=first,name=first,artists=[{'id':'a'+first}],album={'id':'b'+first})
@@ -57,7 +57,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(state['history'],[])
 
     def test_external_edit_stops(self):
-        from spotify_poc.sync import plan
+        from spotify_app.sync import plan
         pool,state=self.setup_state()
         with self.assertRaises(SpotifyError):
             plan(state,pool,{},[],[],{})

@@ -19,23 +19,15 @@ Connect account opens an OAuth flow through your existing Spotify developer appl
 
 The server binds only to 127.0.0.1, checks Host and Origin, requires a per-process token for mutations, rejects cross-site requests, and serves a restrictive content policy. It is a local app; do not expose it on a public interface or treat it as a hosted multi-user backend.
 
-## Demo mode
-
-```sh
-python3 -m spotify_ui --demo --port 8767
-```
-
-This uses synthetic tracks, three overlapping sources and a temporary database. It never connects to Spotify. Demo data disappears when the process exits. The banner identifies the demo; Spotify playback links and login are hidden. This mode supports UI creation, progress, preview/apply, recovery and cancellation tests through the same application service.
-
 ## Architecture and validation
 
-`spotify_ui.controller` adapts user actions to `spotify_poc.service.Application`. Each worker creates and closes its own SQLite connection. `spotify_ui.server` handles only local HTTP and request checks. The dependency-free HTML/CSS/JavaScript in `spotify_ui/static` renders state and polling progress. The scheduling engine remains independent of the UI.
+`spotify_ui.controller` adapts user actions to `spotify_app.service.Application`. Each worker creates and closes its own SQLite connection. `spotify_ui.server` handles only local HTTP and request checks. The dependency-free HTML/CSS/JavaScript in `spotify_ui/static` renders state and polling progress. The scheduling engine remains independent of the UI.
 
 View songs displays the saved buffer without calling Spotify. Edit rules changes track, artist and album spacing for the next sync and invalidates older previews. Source editing remains a future step. Sync now combines planning and applying, with the same playback and target checks as the preview flow.
 
 Automatic sync is off by default and can be enabled per mix. While the local server is running, it checks every 30 seconds and schedules an enabled ready mix every ten minutes, one operation at a time. It uses the shared request pacing and persisted cooldown state. Server shutdown stops scheduling; saved preferences survive restart. It does not run as an operating-system background service.
 
-All 157 automated tests passed. They cover the engine, service, local HTTP interface, queue viewing, rule validation, preview invalidation, single-step sync and opt-in scheduling. Automated tests use mocks or demo data and do not call live Spotify. Browser checks verified the saved buffer, editing rules, switching automatic sync on and off, and a live Sync now that completed with a verified 50-song queue. Scheduling intervals were tested with a controlled clock; a ten-minute live scheduled run was not exercised. Earlier live acceptance covered authentication, progressive creation, playback consumption, shuffle, repeat and deletion; see benchmarks/LIVE_ACCEPTANCE_20261009.md.
+All 157 automated tests passed. They cover the engine, service, local HTTP interface, queue viewing, rule validation, preview invalidation, single-step sync and opt-in scheduling. Automated tests use mocks and synthetic fixtures; they do not call live Spotify. Browser checks verified the saved buffer, editing rules, switching automatic sync on and off, and a live Sync now that completed with a verified 50-song queue. Scheduling intervals were tested with a controlled clock; a ten-minute live scheduled run was not exercised. Earlier live acceptance covered authentication, progressive creation, playback consumption, shuffle, repeat and deletion; see benchmarks/LIVE_ACCEPTANCE_20261009.md.
 
 ## Generated playlists as sources
 

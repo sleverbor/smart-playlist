@@ -2,7 +2,7 @@
 
 # Application foundation
 
-The standalone rules engine is unchanged. `spotify_poc.service.Application` is the reusable boundary for a future UI: connect, create, resume, preview, apply_preview, recover_write and status. A preview captures the local baseline, target snapshot, target contents and recent-play cursor. Applying it rechecks those inputs before committing a pending write. Remote readback must match before the queue becomes ready. Unknown write outcomes remain pending for explicit recovery. Target creation with an unknown outcome requires inspection rather than another POST.
+The standalone rules engine is unchanged. `spotify_app.service.Application` is the reusable boundary for a future UI: connect, create, resume, preview, apply_preview, recover_write and status. A preview captures the local baseline, target snapshot, target contents and recent-play cursor. Applying it rechecks those inputs before committing a pending write. Remote readback must match before the queue becomes ready. Unknown write outcomes remain pending for explicit recovery. Target creation with an unknown outcome requires inspection rather than another POST.
 
 `Progress` delivers dictionaries with an operation ID, UTC timestamp, elapsed time, stage and relevant counts. Listeners can render them however they wish. A `threading.Event` provides cooperative cancellation between requests, generated positions and cooldown waits. Network calls have a 30-second timeout; a blocking file lock or HTTP request cannot be cancelled immediately. SQLite also retains progress/failure events and the final request/cache/retry/wait counters. Use `status` offline to inspect the last operation.
 
@@ -12,17 +12,17 @@ Credentials remain owner-readable local files outside the music database. Login 
 
 ```sh
 cd ~/projects/smart-playlist
-python3 -m spotify_poc --directory second_playlist status
-python3 -m spotify_poc --directory second_playlist sync
-python3 -m spotify_poc --directory second_playlist sync --apply
-python3 -m spotify_poc --directory second_playlist export --output exported_second_playlist
+python3 -m spotify_app --directory second_playlist status
+python3 -m spotify_app --directory second_playlist sync
+python3 -m spotify_app --directory second_playlist sync --apply
+python3 -m spotify_app --directory second_playlist export --output exported_second_playlist
 python3 -m unittest discover -s tests -q
 ```
 
 All global options precede the command. Paths are relative to your working directory. No third-party dependencies are required (Python 3.10+). Creating another named mix reuses the account login:
 
 ```sh
-python3 -m spotify_poc --directory another_mix create --name 'Evening mix' --source OWNED_SOURCE_A --source OWNED_SOURCE_B --rules examples/rob_rules.json
+python3 -m spotify_app --directory another_mix create --name 'Evening mix' --source OWNED_SOURCE_A --source OWNED_SOURCE_B --rules examples/rob_rules.json
 ```
 
 Pause playback during application of changes. Spotify offers no atomic compare-and-swap across playlist replacement and playback. Guards narrow the race but cannot eliminate changes after the final check, especially during multiple write batches. Large targets still use batches of at most 100 items. Once a playable buffer is full, source import continues without rechecking and replanning the target every round; a final reconciliation handles observed playback. Duplicate final reconciliations are avoided. Interrupted batches retain pending state; recovery refuses a target that diverged from the known old contents or a recognizable intended prefix.
@@ -42,11 +42,11 @@ Create the service and its SQLite connection inside the worker thread (SQLite co
 ```python
 from pathlib import Path
 from threading import Event
-from spotify_poc.accounts import Accounts
-from spotify_poc.client import Client, read_json
-from spotify_poc.storage import SQLiteStore
-from spotify_poc.progress import Progress
-from spotify_poc.service import Application
+from spotify_app.accounts import Accounts
+from spotify_app.client import Client, read_json
+from spotify_app.storage import SQLiteStore
+from spotify_app.progress import Progress
+from spotify_app.service import Application
 
 root = Path('another_mix')
 accounts = Accounts('.spotify-accounts')

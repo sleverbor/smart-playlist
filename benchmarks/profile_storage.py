@@ -2,7 +2,7 @@
 import json,resource,sys,tempfile,time
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from spotify_poc.storage import SQLiteStore
+from spotify_app.storage import SQLiteStore
 
 with tempfile.TemporaryDirectory() as tmp:
     store=SQLiteStore(tmp)

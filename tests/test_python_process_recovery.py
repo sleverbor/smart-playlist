@@ -8,10 +8,10 @@ import signal
 import tempfile
 import unittest
 from playlist_engine import Track
-from spotify_poc.client import read_json,save_json
-from spotify_poc.service import Application
-from spotify_poc.storage import SQLiteStore
-from spotify_poc.sync import bootstrap
+from spotify_app.client import read_json,save_json
+from spotify_app.service import Application
+from spotify_app.storage import SQLiteStore
+from spotify_app.sync import bootstrap
 from test_history_gap import event
 from test_progressive import track
 

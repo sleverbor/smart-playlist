@@ -6,9 +6,9 @@ Use the explicit recovery command when ordinary sync reports `Playback history g
 
 ```sh
 cd ~/projects/smart-playlist
-python3 -m spotify_poc recover-history
-python3 -m spotify_poc recover-history --apply
-python3 -m spotify_poc sync
+python3 -m spotify_app recover-history
+python3 -m spotify_app recover-history --apply
+python3 -m spotify_app sync
 ```
 
 The first command previews the proposed history baseline, retained prefix, queue length, uncertainty and required playlist changes. It does not change playlist state or write to Spotify. Read-only requests may still update caches, pacing state and API counters. The apply command recomputes against current data; it does not blindly replay an old preview. Pause playback during recovery writes, and use the same state directory and genre mapping as ordinary sync (`--genres genres.json` when needed).
@@ -22,7 +22,7 @@ Before applying, the CLI rechecks the target snapshot and saves the previous sta
 If a recovery write fails or is interrupted, inspect the target and finish the saved pending write with the existing command:
 
 ```sh
-python3 -m spotify_poc recover --apply
+python3 -m spotify_app recover --apply
 ```
 
 Then ordinary sync can run again. `recover-history` refuses pending/uncertain writes, an empty recent history, unsupported tracks, timestamp ambiguities, a history response older than the saved bookmark, or a bookmark that is still present. Deleted/inaccessible targets and ownership mismatches stop the operation. Neither ordinary sync nor `--reconcile` silently resets history.

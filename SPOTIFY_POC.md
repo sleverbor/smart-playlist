@@ -6,9 +6,9 @@ Register a Spotify developer app with redirect URI `http://127.0.0.1:8765/callba
 
 ```sh
 export SPOTIFY_CLIENT_ID='your app client ID'
-python3 -m spotify_poc login
-python3 -m spotify_poc playlists
-python3 -m spotify_poc create --source PLAYLIST_ID_A --source PLAYLIST_ID_B --minimum-buffer 20 --size 100
+python3 -m spotify_app login
+python3 -m spotify_app playlists
+python3 -m spotify_app create --source PLAYLIST_ID_A --source PLAYLIST_ID_B --minimum-buffer 20 --size 100
 ```
 
 Create samples sources in rounds, deduplicates tracks, and derives a diversity reserve from REQUIRED cooldowns. It publishes only after a full starter sequence satisfies REQUIRED rules and Spotify readback confirms its contents. The terminal then shows **Ready to play in Spotify** with a direct playlist link. Import continues and the queue expands in starter-sized increments, retaining the valid future prefix and reconciling observed playback before each write. Partial samples may still favor tracks near the start of each source; diversity is a heuristic, not proof of representativeness. After exhaustive import, a full engine trial determines feasibility even if the reserve heuristic fails.
@@ -18,14 +18,14 @@ Progress reports source entries loaded/total, unique candidates, skipped entries
 Keep the command running to finish setup. This CLI has no detached background worker. After interruption or an import failure:
 
 ```sh
-python3 -m spotify_poc resume
+python3 -m spotify_app resume
 ```
 
 Cached pages, rules, genre mappings and progress are checkpointed in `.spotify-accounts/application.sqlite`, separately for each playlist directory. Existing JSON files are imported once and preserved; they no longer reflect current state. Use `status` or `export` to inspect the database. Changed source snapshots invalidate their cached pages on resume. Existing targets created before progressive setup still use ordinary sync:
 
 ```sh
-python3 -m spotify_poc sync
-python3 -m spotify_poc sync --apply
+python3 -m spotify_app sync
+python3 -m spotify_app sync --apply
 ```
 
 Sync previews unless `--apply` is supplied. `--reconcile` rebuilds after an external target edit. Use sequential playback with shuffle/repeat disabled and pause during writes; concurrent playback cannot be excluded atomically.
@@ -37,8 +37,8 @@ Local files, unavailable tracks and episodes are skipped; unsupported recent pla
 Remote writes are journaled before population. An interrupted population leaves pending state:
 
 ```sh
-python3 -m spotify_poc recover --apply
-python3 -m spotify_poc resume
+python3 -m spotify_app recover --apply
+python3 -m spotify_app resume
 ```
 
 Recovery verifies ownership, replaces the saved queue and checks readback. An uncertain create leaves `creating` state requiring manual inspection and attachment of the created target ID before changing status to `pending`; never blindly retry creation. Import failures after readiness preserve the published buffer. Snapshot checks detect many edits but are not atomic across remote batches.
@@ -55,7 +55,7 @@ Large-library measurements and commands: [benchmark guide](benchmarks/README.md)
 
 Request pacing, bounded 429 retry, ETag and source snapshot caching are now implemented. See [request resilience](RATE_LIMITS.md) for configuration, counters, tests and remaining scope.
 
-An explicit history-gap recovery path is available: preview with `python3 -m spotify_poc recover-history`, then apply with `--apply`. See [history recovery](HISTORY_RECOVERY.md) for uncertainty, backups and interrupted-write handling.
+An explicit history-gap recovery path is available: preview with `python3 -m spotify_app recover-history`, then apply with `--apply`. See [history recovery](HISTORY_RECOVERY.md) for uncertainty, backups and interrupted-write handling.
 
 The lookahead scan bottleneck is fixed with in-memory indexes, and the CLI uses compact explainable logs. See [performance fix](PERFORMANCE_FIX.md) for measurements and restarting an older running command.
 

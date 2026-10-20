@@ -5,9 +5,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from spotify_poc.client import SpotifyError, save_json, read_json
-from spotify_poc.sync import recover_history, plan
-from spotify_poc.__main__ import main
+from spotify_app.client import SpotifyError, save_json, read_json
+from spotify_app.sync import recover_history, plan
+from spotify_app.__main__ import main
 from test_history_gap import fixture, event
 
 
@@ -75,9 +75,9 @@ class HistoryRecoveryTests(unittest.TestCase):
                 client.playlist.return_value=({'owner':{'id':'me'},'snapshot_id':'v1'},
                      [{'item':{'id':t['id']}} for t in state['queue']])
                 client.recent.return_value=[event(1)]
-                args=['spotify_poc','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'recover-history']+(['--apply'] if apply_flag else [])
-                with patch('sys.argv',args),patch('spotify_poc.__main__.Client',return_value=client), \
-                     patch('spotify_poc.__main__.library',return_value=(pool,{'source':'v1'},0)),patch('builtins.print'):
+                args=['spotify_app','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'recover-history']+(['--apply'] if apply_flag else [])
+                with patch('sys.argv',args),patch('spotify_app.__main__.Client',return_value=client), \
+                     patch('spotify_app.__main__.library',return_value=(pool,{'source':'v1'},0)),patch('builtins.print'):
                     main()
                 client.replace.assert_not_called()
                 if apply_flag:
@@ -98,9 +98,9 @@ class HistoryRecoveryTests(unittest.TestCase):
             client.recent.return_value=[event(1)]
             initial_rows=client.playlist.return_value[1]
             client.playlist.side_effect=[client.playlist.return_value,({'owner':{'id':'me'},'snapshot_id':'changed'},initial_rows)]
-            with patch('sys.argv',['spotify_poc','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'recover-history','--apply']), \
-                 patch('spotify_poc.__main__.Client',return_value=client), \
-                 patch('spotify_poc.__main__.library',return_value=(pool,{'source':'v1'},0)),patch('builtins.print'):
+            with patch('sys.argv',['spotify_app','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'recover-history','--apply']), \
+                 patch('spotify_app.__main__.Client',return_value=client), \
+                 patch('spotify_app.__main__.library',return_value=(pool,{'source':'v1'},0)),patch('builtins.print'):
                 with self.assertRaisesRegex(SpotifyError,'Target changed'):
                     main()
             self.assertEqual(path.read_bytes(),saved)
@@ -121,9 +121,9 @@ class HistoryRecoveryTests(unittest.TestCase):
             client.playlist.return_value=(metadata,[{'item':{'id':t['id']}} for t in state['queue']])
             client.recent.return_value=[play]
             client.replace.side_effect=SpotifyError('Network failure; outcome unknown')
-            with patch('sys.argv',['spotify_poc','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'recover-history','--apply']), \
-                 patch('spotify_poc.__main__.Client',return_value=client), \
-                 patch('spotify_poc.__main__.library',return_value=(pool,{'source':'v1'},0)),patch('builtins.print'):
+            with patch('sys.argv',['spotify_app','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'recover-history','--apply']), \
+                 patch('spotify_app.__main__.Client',return_value=client), \
+                 patch('spotify_app.__main__.library',return_value=(pool,{'source':'v1'},0)),patch('builtins.print'):
                 with self.assertRaisesRegex(SpotifyError,'outcome unknown'):
                     main()
             pending=read_json(path)
@@ -135,8 +135,8 @@ class HistoryRecoveryTests(unittest.TestCase):
             # Model readback after an uncertain write that actually succeeded remotely.
             client.replace.reset_mock();client.replace.side_effect=None
             client.playlist.return_value=(metadata,[{'item':{'id':t['id']}} for t in pending['pending_update']['queue']])
-            with patch('sys.argv',['spotify_poc','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'recover','--apply']), \
-                 patch('spotify_poc.__main__.Client',return_value=client):
+            with patch('sys.argv',['spotify_app','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'recover','--apply']), \
+                 patch('spotify_app.__main__.Client',return_value=client):
                 main()
             client.replace.assert_not_called()
             ready=read_json(path)

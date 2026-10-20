@@ -2,9 +2,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from spotify_poc.progressive import run
-from spotify_poc.__main__ import apply, ids
-from spotify_poc.client import SpotifyError, save_json, read_json
+from spotify_app.progressive import run
+from spotify_app.__main__ import apply, ids
+from spotify_app.client import SpotifyError, save_json, read_json
 from test_progressive import FakeSpotify
 
 
@@ -21,7 +21,7 @@ class ForceCreateTests(unittest.TestCase):
 
     def test_force_replaces_unpublished_job_and_keeps_login(self):
         c=FakeSpotify()
-        with tempfile.TemporaryDirectory() as d,patch('spotify_poc.progressive.emit'):
+        with tempfile.TemporaryDirectory() as d,patch('spotify_app.progressive.emit'):
             root=Path(d);old=self.job(root)
             self.start(c,root,force=True)
             self.assertEqual(read_json(root/'setup.json')['sources'],['0','1'])

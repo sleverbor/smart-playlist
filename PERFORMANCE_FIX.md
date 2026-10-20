@@ -25,8 +25,8 @@ Results: `benchmarks/indexed-results.json`, `benchmarks/recovery-compact-results
 An already-running Python process keeps its old loaded scheduler. If the previous recovery command is still running, press Ctrl-C, then restart:
 
 ```sh
-python3 -m spotify_poc recover-history
-python3 -m spotify_poc recover-history --apply
+python3 -m spotify_app recover-history
+python3 -m spotify_app recover-history --apply
 ```
 
-If its saved state is pending instead of ready, inspect the target and finish the existing pending write with `python3 -m spotify_poc recover --apply` first. Do not start another copy against the same state directory while the old process owns its lock. Installing/testing this fix did not kill the running process or mutate Spotify.
+If its saved state is pending instead of ready, inspect the target and finish the existing pending write with `python3 -m spotify_app recover --apply` first. Do not start another copy against the same state directory while the old process owns its lock. Installing/testing this fix did not kill the running process or mutate Spotify.

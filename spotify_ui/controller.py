@@ -5,25 +5,21 @@ from copy import deepcopy
 from datetime import datetime,timezone
 import fcntl,hashlib,json,re,sqlite3,threading,time,uuid
 from pathlib import Path
-from spotify_poc.accounts import Accounts
-from spotify_poc.client import Client,SpotifyError,login,read_json
-from spotify_poc.progress import Progress,Cancelled
-from spotify_poc.service import Application
-from spotify_poc.storage import SQLiteStore
-from spotify_poc.__main__ import usable_playlists
-from spotify_poc.sync import rules_from
+from spotify_app.accounts import Accounts
+from spotify_app.client import Client,SpotifyError,login,read_json
+from spotify_app.progress import Progress,Cancelled
+from spotify_app.service import Application
+from spotify_app.storage import SQLiteStore
+from spotify_app.__main__ import usable_playlists
+from spotify_app.sync import rules_from
 from .errors import describe
 
 class Controller:
-    def __init__(self,project,demo=False,client_factory=Client):
+    def __init__(self,project,client_factory=Client):
         self.project=Path(project).resolve();self.accounts=Accounts(self.project/'.spotify-accounts')
-        self.database=self.accounts.root/'application.sqlite';self.demo=demo
+        self.database=self.accounts.root/'application.sqlite'
         self.client_factory=client_factory;self.jobs={};self.previews={};self.names={};self.lock=threading.RLock()
         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='playlist-ui')
-        self.fake=None
-        if demo:
-            from .demo import DemoSpotify
-            self.fake=DemoSpotify();self.names['demo']='Demo listener'
         # Initialize schema without moving or altering an existing playlist workspace.
         store=SQLiteStore(self.project/'.ui',self.database)
         self.names.update(store.cache_read('ui','account-labels') or {})
@@ -33,7 +29,6 @@ class Controller:
         self.scheduler.start()
 
     def cooldown_until(self,account,root=None):
-        if self.demo:return 0
         row=read_json(self.accounts.index_path,{}).get(account,{})
         client_id=row.get('client_id')
         if not client_id and root:
@@ -66,10 +61,9 @@ class Controller:
                 mixes.append(dict(id=self.identity(root),name=job.get('name') or 'Saved mix',account=(state or job).get('account'),status=state.get('status','setup'),setup_status=job.get('status'),changes_pending=bool(job.get('changes_sync_pending') or job.get('name_sync_pending')),target=state.get('target'),auto_sync=settings.get('auto_sync',False),last_sync=settings.get('last_sync'),last_check=settings.get('last_check'),sync_status=settings.get('sync_status'),sync_message=settings.get('sync_message'),sync_error=settings.get('sync_error'),cooldown_until=cooldown or None,next_sync=max(settings.get('next_sync') or 0,cooldown) if settings.get('auto_sync') else None,queue_size=count,normal=job.get('normal',state.get('size')),imported=imported,source_count=len((state or job).get('sources',[])),updated=updated,upcoming=preview))
         index=read_json(self.accounts.index_path,{})
         accounts=[dict(id=i,name=self.names.get(i,'Saved Spotify account')) for i in index]
-        if self.demo:accounts=[dict(id='demo',name='Demo listener')]
         with self.lock:
             jobs=[self.public(job) for job in self.jobs.values()]
-        return dict(demo=self.demo,accounts=accounts,mixes=mixes,jobs=jobs,active=next((j['id'] for j in jobs if j['status'] in ('queued','running','cancelling')),None))
+        return dict(accounts=accounts,mixes=mixes,jobs=jobs,active=next((j['id'] for j in jobs if j['status'] in ('queued','running','cancelling')),None))
 
     def source_status(self,account):
         if account not in [a['id'] for a in self.snapshot()['accounts']]:
@@ -146,19 +140,16 @@ class Controller:
         return dict(name=name.strip(),sources=list(dict.fromkeys(sources)),minimum=minimum,normal=normal,seed=seed,rows=rows,genres=genres)
 
     def connect(self,root,store,progress,account):
-        if self.demo:client=self.fake
-        else:
-            deadline=self.cooldown_until(account,root)
-            if deadline>time.time():
-                error=SpotifyError('Waiting for Spotify until '+datetime.fromtimestamp(deadline).astimezone().strftime('%b %d, %I:%M %p')+'. Automatic sync will resume after the cooldown.')
-                error.ui_code='cooldown';error.ui_params=dict(deadline=deadline)
-                raise error
-            token_path=self.accounts.select(root,account)
-            client=self.client_factory(token_path,store=store,progress=progress,rate_path=self.accounts.import_legacy_rate(root,read_json(token_path)))
+        deadline=self.cooldown_until(account,root)
+        if deadline>time.time():
+            error=SpotifyError('Waiting for Spotify until '+datetime.fromtimestamp(deadline).astimezone().strftime('%b %d, %I:%M %p')+'. Automatic sync will resume after the cooldown.')
+            error.ui_code='cooldown';error.ui_params=dict(deadline=deadline)
+            raise error
+        token_path=self.accounts.select(root,account)
+        client=self.client_factory(token_path,store=store,progress=progress,rate_path=self.accounts.import_legacy_rate(root,read_json(token_path)))
         app=Application(client,root,store,progress);verified=app.connect()
         if account and account!=verified:raise SpotifyError('The selected Spotify account does not match this login.')
-        if not self.demo:
-            client.token_path=self.accounts.register(verified,client.token)
+        client.token_path=self.accounts.register(verified,client.token)
         if verified not in self.names:
             profile=client.request('GET','/me');self.names[verified]=profile.get('display_name') or 'Spotify account'
             store.cache_write('ui','account-labels',self.names)
@@ -233,7 +224,6 @@ class Controller:
                     with self.lock:self.previews={k:v for k,v in self.previews.items() if v['mix']!=job['mix']}
                     result=dict(mix=job['mix'])
             elif action=='login':
-                if self.demo:raise SpotifyError('Demo mode does not connect to Spotify.')
                 index=read_json(self.accounts.index_path,{})
                 client_id=data.get('client_id') or next((v['client_id'] for v in index.values()),None)
                 if not isinstance(client_id,str) or not re.fullmatch('[A-Za-z0-9]{16,64}',client_id):raise SpotifyError('Enter the client ID from your Spotify developer application.')

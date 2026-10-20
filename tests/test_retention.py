@@ -1,7 +1,7 @@
 import tempfile,unittest,json
 from pathlib import Path
-from spotify_poc.storage import SQLiteStore
-from spotify_poc.retention import maintain,DAY
+from spotify_app.storage import SQLiteStore
+from spotify_app.retention import maintain,DAY
 from test_history_gap import fixture
 
 class RetentionTests(unittest.TestCase):

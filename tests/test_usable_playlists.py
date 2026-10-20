@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
-from spotify_poc.__main__ import usable_playlists
-from spotify_poc.client import SpotifyError
+from spotify_app.__main__ import usable_playlists
+from spotify_app.client import SpotifyError
 
 
 def playlist(identity, owner, collaborative=False):

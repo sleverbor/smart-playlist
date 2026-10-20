@@ -1,6 +1,5 @@
 import unittest
 from playlist_engine import *
-from playlist_engine.demo import synthetic_sources
 
 
 def track(id, artist=None, genre='rock', album=None, sources=()):
@@ -9,7 +8,14 @@ def track(id, artist=None, genre='rock', album=None, sources=()):
 
 class EngineTests(unittest.TestCase):
     def test_core_100_20_1(self):
-        library = library_from_playlists(synthetic_sources(300))
+        tracks = [Track(f't{i:04}', f'Song {i}',
+                        (f'a{i % 240:03}',), f'album{i // 4:03}', (f'genre{i % 6}',))
+                  for i in range(300)]
+        library = library_from_playlists({
+            'Favorites': tracks[:225],
+            'Driving': tracks[75:],
+            'Discoveries': tracks[::3],
+        })
         rules = [Rule('t', 'track', 100), Rule('a', 'artist', 20), Rule('g', 'genre', 1)]
         history = library[:10]
         queued = generate(library, history, [], rules, 10, Config(lookahead_depth=1)).tracks

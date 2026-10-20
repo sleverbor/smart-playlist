@@ -1,7 +1,7 @@
 import json,unittest
 from pathlib import Path
 from spotify_ui.errors import describe,MESSAGES
-from spotify_poc.client import SpotifyError
+from spotify_app.client import SpotifyError
 
 class ServiceErrorTests(unittest.TestCase):
     def test_codes_do_not_depend_on_http_diagnostic_wording(self):

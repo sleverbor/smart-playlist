@@ -1,8 +1,8 @@
 import unittest
 from playlist_engine import Config, Rule, generate, library_from_playlists
 from benchmarks.large_library import sources
-from spotify_poc.client import Client
-from spotify_poc.sync import library
+from spotify_app.client import Client
+from spotify_app.sync import library
 
 
 class LargeLibraryTests(unittest.TestCase):

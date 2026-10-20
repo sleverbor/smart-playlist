@@ -8,10 +8,10 @@ import unittest
 from unittest.mock import Mock
 from dataclasses import replace
 from playlist_engine import Track
-from spotify_poc.sync import bootstrap,plan,dump
-from spotify_poc.service import Application
-from spotify_poc.storage import SQLiteStore
-from spotify_poc.writes import apply,PreconditionFailed,guard
+from spotify_app.sync import bootstrap,plan,dump
+from spotify_app.service import Application
+from spotify_app.storage import SQLiteStore
+from spotify_app.writes import apply,PreconditionFailed,guard
 from test_history_gap import fixture,event
 from test_progressive import track
 
@@ -77,7 +77,7 @@ class NativeParityTests(unittest.TestCase):
             self.assertEqual(client.calls,['recent']);self.assertEqual(store.read('decision-log.json'),{'old':'report'});loader.assert_not_called()
 
     def test_idle_real_client_interface_skips_library_membership_and_target_reads(self):
-        from spotify_poc.client import Client
+        from spotify_app.client import Client
         with tempfile.TemporaryDirectory() as folder:
             store=SQLiteStore(folder)
             try:

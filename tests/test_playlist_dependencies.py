@@ -3,10 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock
-from spotify_poc.service import Application
-from spotify_poc.storage import SQLiteStore
-from spotify_poc.client import SpotifyError
-from spotify_poc.sync import library
+from spotify_app.service import Application
+from spotify_app.storage import SQLiteStore
+from spotify_app.client import SpotifyError
+from spotify_app.sync import library
 from test_history_gap import fixture, event
 from test_progressive import track
 

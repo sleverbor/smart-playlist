@@ -1,6 +1,6 @@
 import unittest
 from copy import deepcopy
-from spotify_poc.sync import plan
+from spotify_app.sync import plan
 from test_history_gap import fixture, event
 from test_progressive import track
 
@@ -49,7 +49,7 @@ class PlaybackOrderTests(unittest.TestCase):
         self.assertEqual(report['consumed'],1)
 
     def test_distinct_tied_timestamps_are_stable_and_preserve_all_plays(self):
-        from spotify_poc.sync import ordered
+        from spotify_app.sync import ordered
         a=self.play(1,'a');b=self.play(1,'b')
         self.assertEqual(ordered([a,b]),ordered([b,a]))
         self.assertEqual(len(ordered([a,b])),2)
@@ -62,7 +62,7 @@ class PlaybackOrderTests(unittest.TestCase):
 class RecordingIdentityTests(unittest.TestCase):
     def test_matching_recording_consumes_alternate_and_enforces_cooldown(self):
         from dataclasses import replace
-        from spotify_poc.sync import dump
+        from spotify_app.sync import dump
         pool,state=fixture()
         original=state['queue'][0]['id']
         pool=[replace(t,recording_id='ISRC123') if t.id==original else t for t in pool]
@@ -84,7 +84,7 @@ class RecordingIdentityTests(unittest.TestCase):
         self.assertEqual(report['consumed'],1)
 
     def test_same_title_different_recording_is_not_matched(self):
-        from spotify_poc.sync import adapt,same_recording
+        from spotify_app.sync import adapt,same_recording
         a=track('a');b=track('b');a['name']=b['name']='Same title'
         a['external_ids']={'isrc':'A'};b['external_ids']={'isrc':'B'}
         self.assertFalse(same_recording(adapt(a,{}),adapt(b,{})))

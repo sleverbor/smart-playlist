@@ -13,14 +13,6 @@ python3 -m spotify_ui --project "$PWD" --port 8766
 
 Open http://127.0.0.1:8766/. Existing accounts, mixes, and automatic-sync preferences are preserved. A saved enabled preference starts scheduling when this real app runs; closing the process stops its scheduler. Sync now and previews remain available. Do not run two local app processes against the same project as a multi-worker deployment; the workspace locks prevent simultaneous writes, but this is a single local application.
 
-For isolated experimentation with no Spotify requests:
-
-```sh
-python3 -m spotify_ui --demo --port 8766
-```
-
-Demo data lives in a temporary workspace. It cannot access a Spotify account. Stop the demo before starting the real app on the same port.
-
 ## Lessons ported from the Android investigation
 
 | Area | Python behavior |
@@ -66,4 +58,4 @@ python3 -m unittest discover -s tests
 
 Coverage includes large paginated libraries, source deduplication, seeded engine parity, rate/ETag caching, deletion and recreation, editing sources/rules/size, opt-in scheduling and cooldown recovery, incomplete history, shuffle/repeat, pre-write races, SQLite rollback/delta writes, and accepted/unapplied replace/append recovery. `tests/test_python_process_recovery.py` contains the real process-kill test. It uses a synthetic remote file and separate temporary SQLite database.
 
-Browser smoke test: created a 100-song demo from two sources using the default rules; selected both sources through stable checkbox controls; enabled automatic sync; completed a manual sync; observed ready status and last/next check times. No real Spotify account was attached to that demo.
+Historical browser smoke test, run before demo-mode removal: created a 100-song synthetic mix from two sources, enabled automatic sync, and completed a manual sync. It did not use a real Spotify account.

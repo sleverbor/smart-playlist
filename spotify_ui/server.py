@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 import json,secrets
 from pathlib import Path
 from urllib.parse import urlsplit
-from spotify_poc.client import SpotifyError
+from spotify_app.client import SpotifyError
 
 from .errors import describe
 

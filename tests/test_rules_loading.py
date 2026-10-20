@@ -1,9 +1,9 @@
 import tempfile
 import unittest
 from pathlib import Path
-from spotify_poc.__main__ import load_rules
-from spotify_poc.sync import rules_from
-from spotify_poc.client import SpotifyError
+from spotify_app.__main__ import load_rules
+from spotify_app.sync import rules_from
+from spotify_app.client import SpotifyError
 
 class RulesLoadingTests(unittest.TestCase):
     def test_default_rules(self):

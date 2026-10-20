@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from spotify_poc.client import Client, PlaylistChanged
+from spotify_app.client import Client, PlaylistChanged
 
 class SetupReadTests(unittest.TestCase):
     def client(self, snapshots):

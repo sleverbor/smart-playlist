@@ -6,9 +6,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from playlist_engine import Track
-from spotify_poc.__main__ import main
-from spotify_poc.client import SpotifyError, save_json
-from spotify_poc.sync import bootstrap, plan
+from spotify_app.__main__ import main
+from spotify_app.client import SpotifyError, save_json
+from spotify_app.sync import bootstrap, plan
 
 
 def event(index):
@@ -29,7 +29,7 @@ class HistoryGapTests(unittest.TestCase):
         pool,state=fixture()
         events=[event(i) for i in range(1,51)]
         before=deepcopy((pool,state,events))
-        with patch('spotify_poc.sync.generate') as generate:
+        with patch('spotify_app.sync.generate') as generate:
             with self.assertRaisesRegex(SpotifyError,'Playback history gap'):
                 plan(state,pool,{'source':'v1'},[t['id'] for t in state['queue']],events,{})
             generate.assert_not_called()
@@ -57,10 +57,10 @@ class HistoryGapTests(unittest.TestCase):
                 rows=[] if '--reconcile' in flags else [{'item':{'id':t['id']}} for t in state['queue']]
                 client.playlist.return_value=({'snapshot_id':'target-v1','owner':{'id':'me'}},rows)
                 client.recent.return_value=[event(i) for i in range(1,51)]
-                with patch('spotify_poc.__main__.Client',return_value=client), \
-                     patch('spotify_poc.__main__.library',return_value=(pool,{'source':'v1'},0)), \
-                     patch('spotify_poc.__main__.apply') as apply, \
-                     patch('sys.argv',['spotify_poc','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'sync']+flags):
+                with patch('spotify_app.__main__.Client',return_value=client), \
+                     patch('spotify_app.__main__.library',return_value=(pool,{'source':'v1'},0)), \
+                     patch('spotify_app.__main__.apply') as apply, \
+                     patch('sys.argv',['spotify_app','--accounts-directory',str(Path(folder)/'accounts'),'--storage','json','--directory',folder,'sync']+flags):
                     with patch('builtins.print'):
                         main()
                     self.assertEqual(apply.call_count,int('--apply' in flags))
